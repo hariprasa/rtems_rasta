@@ -76,8 +76,6 @@
 #include <drvmgr/drvmgr_confdefs.h> 
 	
 void system_init(void);
-/* end of include file */
-
 
 #if 1  /* Enable driver manager usage https://devel.rtems.org/wiki/TBR/UserManual/DriverManager */
 #include <drvmgr/ambapp_bus_grlib.h>

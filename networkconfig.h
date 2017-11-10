@@ -38,24 +38,17 @@ static struct rtems_bsdnet_ifconfig netdriver_config = {
 /*
  * Loopback interface
  */
-//#include "loop.h"
 
+extern void rtems_bsdnet_initialize_loop();
 static struct rtems_bsdnet_ifconfig loopback_config = {
         "loop0",                        /* name */
-//        rtems_bsdnet_initialize_loop,        /* attach function */
-	rtems_bsdnet_attach,
+        rtems_bsdnet_initialize_loop,        /* attach function */
+//	rtems_bsdnet_attach,
         NULL,                           /* link to next interface */
         "127.0.0.1",                    /* IP address */
         "255.0.0.0",                    /* IP net mask */
 	NULL,                           /* hardware_address */
 	0,
-	0,
-	0,
-	0,
-	0,
-	0,
-	0,
-	NULL
 };
 #endif
 
@@ -70,10 +63,8 @@ static struct rtems_bsdnet_ifconfig loopback_config = {
  */
 struct ethernet_config interface_configs[] =
 {
-        { "192.168.0.81", "255.255.255.0", {0x80,0x80,0x80,0x80,0x80,0x80}},// NULL - take PHY address and IP from device
-        { "192.168.0.82", "255.255.255.0", {0x00, 0x80, 0x7F, 0x22, 0x61, 0x7A}},
-        {NULL, NULL, {0,0,0,0,0,0}}
-};
+       { "192.168.0.81", "255.255.255.0", {0x80,0x80,0x80,0x80,0x80,0x80}},// NULL - take PHY address and IP from device
+  };
 
 /*
  * Network configuration
