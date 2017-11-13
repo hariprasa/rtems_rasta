@@ -14,7 +14,7 @@
 #define CONFIGURE_EXTRA_TASK_STACKS         (50*RTEMS_MINIMUM_STACK_SIZE)
 //#define CONFIGURE_EXECUTIVE_RAM_SIZE    (1024*1024)
 #define CONFIGURE_LIBIO_MAXIMUM_FILE_DESCRIPTORS 20
-//#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
+#define CONFIGURE_USE_IMFS_AS_BASE_FILESYSTEM
 //#define CONFIGURE_FILESYSTEM_ALL
 #define CONFIGURE_STACK_CHECKER_ENABLED
 #define CONFIGURE_RTEMS_INIT_TASKS_TABLE
@@ -67,10 +67,10 @@
 #define CONFIGURE_DRIVER_AMBAPP_GAISLER_GRETH   /* GRETH Driver */
 #define CONFIGURE_DRIVER_AMBAPP_GAISLER_GRSPW   /* GRSPW Driver */
 #define CONFIGURE_DRIVER_AMBAPP_GAISLER_GRCAN   /* GRCAN Driver */
-#define CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553B
-#define CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553BM
-#define CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553BC
-#define CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553RT
+//#define CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553B
+//#define CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553BM
+//#define CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553BC
+//#define CONFIGURE_DRIVER_AMBAPP_GAISLER_GR1553RT
 
 
 #include <drvmgr/drvmgr_confdefs.h> 
@@ -121,6 +121,7 @@ struct drvmgr_key grlib_grcan0_res[] =
 	{"rxDescs", DRVMGR_KT_INT, {(unsigned int)32}},
 	DRVMGR_KEY_EMPTY
 };
+
 /* GRLIB Plug & Play bus driver resources */
 struct drvmgr_drv_res grlib_drv_resources[] =
 
@@ -133,15 +134,21 @@ struct drvmgr_drv_res grlib_drv_resources[] =
 	DRVMGR_RES_EMPTY
 };
 
+#ifndef RTEMS_DRVMGR_STARTUP
 struct grlib_config grlib_bus_config = 
 {
 	&ambapp_plb,		/* AMBAPP bus setup */
 	&grlib_drv_resources,	/* Driver configuration */
 };
+#endif
+
 void system_init(void)
 {
+
+#ifndef RTEMS_DRVMGR_STARTUP
 	/* Register GRLIB root bus */
 	ambapp_grlib_root_register(&grlib_bus_config);
+
 
         /* Initializing Driver Manager if not alread performed by BSP */
   	printf("Initializing Driver manager...\n");
@@ -149,6 +156,8 @@ void system_init(void)
   	   printf("Driver manager Failed to initialize\n");
 	   exit(-1);
 	}
+#endif
+
 	/* Print Driver manager drivers and their assigned devices */
   	printf("[drvmgr] ");
   	drvmgr_summary();

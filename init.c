@@ -11,6 +11,7 @@
 #include <sys/socket.h> // AF_INET, SOCK_STREAM, MSG_WAITALL
 #include <netinet/in.h> // struct sockaddr_in
 #define ENABLE_GRETH 1
+#define UART1_DEVICE "/dev/console_b"
 
 /****************************************************************************/
 /* Task configuration                                                       */
@@ -28,6 +29,7 @@ rtems_name          Sem_name;
 #define TASK3_PRIORITY 122   // SpaceWire generic receiver task 
 #define TASK4_PRIORITY 122   // Ethernet TCPIP Server task
 #define TASK5_PRIORITY 122   // Ethernet TCPIP Client task
+#define TASK6_PRIORITY 90    // Uart demo transmit task
 /****************************************************************************/
 /* The_Task1(): body of the task                                             */
 /****************************************************************************/
@@ -281,6 +283,75 @@ rtems_task The_Task5(char *argv[])
   socket_close(sd);
   rtems_task_delete(RTEMS_SELF);
 }
+
+/*******************************************************************************
+ * RTEMS uartdemo Task
+ ******************************************************************************/
+
+rtems_task uartdemotask(rtems_task_argument unused){ 
+
+	int fds['z'-'a'], len, n_consoles;
+	struct termios term;
+	char console;
+	char buf[50];
+	int fd,i,j;
+	int iterations, console_nr, loop_back_uart;
+
+	printf("\nHello World on System Console\n");
+	fflush(NULL);
+
+	/* Open and setup consoles */
+
+		fd = open(UART1_DEVICE, O_RDWR);
+		if ( fd < 0 ) {
+			printf("Failed to open %s.\nNumber of consoles available: %d\nCause open failed, ERRNO: %d = %s\n\n\n",UART1_DEVICE,errno,strerror(errno));
+		}
+
+		/* Get current configuration */
+		tcgetattr(fd, &term);
+
+		/* Set Console baud to 38400, default is 38400 */
+		cfsetospeed(&term, B115200);
+		cfsetispeed(&term, B115200);
+
+		/* Do not echo chars */
+		term.c_lflag &= ~(ICANON|ECHO|ECHOE|ECHOK|ECHONL|ECHOPRT|ECHOCTL|ECHOKE);
+
+		/* Turn off flow control */
+		term.c_cflag |= CLOCAL;
+
+		/* Update driver's settings */
+		tcsetattr(fd, TCSANOW, &term);
+
+
+	fflush(NULL);
+
+	/* Send a string of every UART and compare it with the received
+	 * string
+	 */
+
+	for (j=1; j<=10; j++) {
+		/* Prepare unique string to send */
+		len = sprintf(buf, "%d. Hello World\n", j );
+		printf("sending on %s :::: %s \n", UART1_DEVICE,buf);
+		/* Send the string */
+		for(i=0; i<len; i++) {
+			/* Send 1 char */
+			if ( write(fd, &buf[i], 1) != 1 ) {
+			printf("Failed to send character\n");
+			exit(0);
+			}
+		/* Force send */
+		fflush(NULL);
+		}	
+	}	
+	
+	/* Tell everything is done. */
+	printf("Complete Test OK.\n");
+	close(fd);
+	rtems_task_delete(RTEMS_SELF);
+}
+
 /*******************************************************************************
  * RTEMS user commands 
  ******************************************************************************/
@@ -478,16 +549,42 @@ int main_ethrxtx(int argc, char* argv[])
   Task_name[5] = rtems_build_name('T','S','K','5'); 
 
   status = rtems_task_create(Task_name[5],TASK5_PRIORITY, RTEMS_MINIMUM_STACK_SIZE, RTEMS_DEFAULT_MODES,RTEMS_DEFAULT_ATTRIBUTES, &Task_id[5]);
-  printf("[greth_client]-- Task nb. %d created, status = %d, priority = %d, id = %x\n",5, (int)status, TASK4_PRIORITY,(int)Task_id[5]); 
+  printf("[greth_client]-- Task nb. %d created, status = %d, priority = %d, id = %x\n",5, (int)status, TASK5_PRIORITY,(int)Task_id[5]); 
 
   rtems_task_start(Task_id[5],The_Task5, argv);
   return 0;
 
 }
 
+/* usercommand: uartdemo */
+int main_uartdemo(int argc, char* argv[])
+{
 
+  if(strcmp(argv[1],"-h") == 0 )
+  {
+    printf("task sends characters on UART %s \n", UART1_DEVICE);
+    printf ("Usage: uartdemo  [-h ]  \n");
+    return 0;
+  }
+  else if ((0 >= argc)&& (argc >=1))
+  {
+    printf ("error: invalid options, use -h for Usage\n");
+    return -1;
+  }
+  rtems_status_code    status;
 
+  printf("[UART] -----UART DEMONSTRATOR--------- \n");
 
+  Task_name[6] = rtems_build_name('T','S','K','6'); 
+
+  status = rtems_task_create(Task_name[6],TASK6_PRIORITY, RTEMS_MINIMUM_STACK_SIZE, RTEMS_DEFAULT_MODES,RTEMS_DEFAULT_ATTRIBUTES, &Task_id[6]);
+
+  printf("[UART]-- Task nb. %d created, status = %d, priority = %d, id = %x\n",1, (int)status, TASK6_PRIORITY,(int)Task_id[6]); 
+
+  rtems_task_start(Task_id[6],uartdemotask, 0);
+  
+  return 0;
+}
 
 
 
@@ -511,6 +608,7 @@ rtems_task Init (rtems_task_argument ignored)
   rtems_shell_add_cmd ("ethrxtx","ethernet","Receive and send back the IP packet",main_ethrxtx);
   rtems_shell_add_cmd ("ethserver","ethernet","Create TCP/IP server",main_ethserver);
   printf("\n");
+  rtems_shell_add_cmd ("uartdemo","apbuart","print helloworld in apbuart(/dev/console_b) j2 connector of RASTA",main_uartdemo);
 
   /* Initialize shell */
   rtems_shell_init(

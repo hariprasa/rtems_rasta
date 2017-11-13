@@ -1,12 +1,12 @@
 ------------------------------------------
 RTEMS 4.12 Environment for RASTA platform
 ------------------------------------------
-This project provides a rtems shell environment for the RASTA platform. The interfaces SpaceWire and Ethernet are activate with the drivers and are ready to use.
+This project provides a rtems shell environment for the RASTA platform. The interfaces Uart, SpaceWire and Ethernet are activate with the drivers and are ready to use.
 
 --------------
 Prerequisites:
 --------------
-1. Install RTEMS 4.12 and set it's Makefile.inc path to the variable "RTEMS_MAKEFILE_PATH"
+1. Install RTEMS 4.12 and set it's Makefile.inc path to the variable "RTEMS_MAKEFILE_PATH". Optionaly, the RTEMS kernel can be compiled with "--enable-drvmgr" parameter to load drivermanger at startup  
 2. Install RTEMS 4.12 tools such as "sparc-rtems4.12-gcc, etc." using rtems source builder
 3. This project assumes the user has prior knowledge of rtems, using grmom and rasta platform
 
@@ -48,6 +48,10 @@ rtems shell usage:
    --------
    ethrxtx      - Receive and send back the IP packet
    ethserver    - Create TCP/IP server
+
+   uart
+   ----
+   uartdemo     - Sends "hello world" in apbuart(/dev/console_b) at j2 connector
 
    system
    ------
@@ -96,7 +100,12 @@ rtems shell usage:
    # ethserver -h
    Create an TCP/IP server link 
    Usage: ethserver  [-h | PORT_NUMBER] [BUFFER_SIZE]
-   
+
+   uartdemo
+   --------
+   #uartdemo -h
+   task sends characters on UART /dev/UARTn_DEVICE
+
    killtask
    --------
    # killtask -h 
