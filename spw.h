@@ -15,7 +15,7 @@
 
 /******************************************************************************/
 
-int spw_setup(int fd, char *dev_name,int nodeaddr);
+int spw_setup(int fd, char *dev_name,int nodeaddr, int promiscuous);
 
 int spw_configuration_status(int fd, char *dev_name);
 

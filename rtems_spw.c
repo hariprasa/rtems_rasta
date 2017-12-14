@@ -85,12 +85,12 @@ void spw_configuration(int fd, char *dev_name, int nodeaddr, int promiscuous)
 
 /*****************************************************************************/
 
-int spw_setup(int fd, char *dev_name, int nodeaddr)
+int spw_setup(int fd, char *dev_name, int nodeaddr, int promiscuous)
 {
   int ret_val;
   int lstatus;
 
-  spw_configuration(fd, dev_name,nodeaddr,0); 
+  spw_configuration(fd, dev_name,nodeaddr,promiscuous); 
 
   /* Make sure link is up */
   while( ioctl(fd, SPACEWIRE_IOCTRL_START, 20) == -1 ) //timeout 20 ticks

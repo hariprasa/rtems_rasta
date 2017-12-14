@@ -1,7 +1,26 @@
 ------------------------------------------
 RTEMS 4.12 Environment for RASTA platform
 ------------------------------------------
-This project provides a rtems shell environment for the RASTA platform. The interfaces Uart, SpaceWire and Ethernet are activate with the drivers and are ready to use.
+This project provides a rtems shell environment for the RASTA platform. The interfaces Uart, SpaceWire and Ethernet are activate with the drivers and are ready to use. This uses RTEMS driver manager for driver initialization. 
+
+Preinstalled drivers for: 
+1. Ethernet interface GAISLER_ETHMAC
+2. Can interface GAISLER_GRCAN
+3. SpaceWire interface GAISLER_SPW2
+4. UART interface GAISLER_APBUART
+
+Interface Configuration: 
+1. Ethernet interface 
+	-> J2-ETH: IP address: 192.168.0.81, Net Mask: 255.255.255.0
+2. Spacewire interface
+	-> SPW-0: grspw0, Node Address: 30
+        -> SPW-1: grspw1, Node Address: 31
+	-> SPW-2: grspw2, Node Address: 32
+3. UART interface
+	-> J2: console_b, settings: 8N, baudrate 115200 
+4. CAN interface
+	-> CAN-A/B: grcanO
+	usage of CAN interface is not addressed in this rtems shell environment.
 
 --------------
 Prerequisites:
@@ -31,10 +50,43 @@ project usage:
 
 2. To include new sources files for the project, Add the file name to "CSRCS" variable in Makefile
 
+3. Openning GRMON
+   -> for connecting grmon to RASTA using Ethernet. 
+      $ /path/grmon -eth -emem2 -ip 192.168.0.78 -udp 8000 -u 0 -log
+      (note1: the ip address of edcl and udp port may vary according to RASTA's configuration)
+      (note2: the computer connecting with RASTA(at J2-ETH interface) should be in same network)
+
+
+   -> for connecting grmon to RASTA using UART
+      $ /path/grmon -v -u -uart /dev/ttyUSB0 -log
+      (note1: Connect an UART cable form J1-DSU to computer with Grmon installed)
+      (note2: the name of UART device may vary according to host computer of grmon )
+
+4. Loading the program to RASTA
+    After opening the GRMON debug interface in the host computer, the executable generated in step-1
+    can be loaded by using the command in grmon interface as below 
+    $ load /path/test.exe
+
+    (note1: Loading can be faster when Grmon connects with RASTA using ethernet )
+
+
+5. Executing the shell
+    After loading the Shell program to the RASTA board, The rtems shell can be executed by using 
+    the command in grmon interface as below
+    $ run
+    
+6. RTEMS Shell environment
+    The above command starts rtems shell environment in the RASTA board. The rtems shell opens up
+    after loading the drivers and intializing ethernet network. The RTEMS shell is ready to execute
+    the user commands. Use "help" command to know the support for possible rtems shell commands. In
+    addition to predefined RTEMS shell commands, some of the userdefined commands are defined in
+    this project to demonstrate the communication interfaces as given section below
+   
+
 ------------------
 rtems shell usage:
 ------------------
-1. rtems shell commands added in the following topics
+1. Following rtems shell commands added in the respective topics
 
    spacewire
    ---------
@@ -117,4 +169,5 @@ rtems shell usage:
 Known problems:
 ---------------
 1. ping to any IP address from the rtems shell results in error.
+2. Bugs in UART Receive communication
 

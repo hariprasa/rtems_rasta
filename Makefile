@@ -27,6 +27,7 @@ COBJS = $(COBJS_:%=${ARCH}/%)
 
 MANAGERS = all        # optional managers required
 LIBS = -lrtemsall -lc # libraries
+libbsp_a_SOURCES += ../../shared/console-termios.c
 
 include $(RTEMS_MAKEFILE_PATH)/Makefile.inc
 include $(RTEMS_CUSTOM)

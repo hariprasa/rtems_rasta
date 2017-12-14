@@ -30,6 +30,7 @@ rtems_name          Sem_name;
 #define TASK4_PRIORITY 122   // Ethernet TCPIP Server task
 #define TASK5_PRIORITY 122   // Ethernet TCPIP Client task
 #define TASK6_PRIORITY 90    // Uart demo transmit task
+#define TASK7_PRIORITY 90    // Uart demo transmit task
 /****************************************************************************/
 /* The_Task1(): body of the task                                             */
 /****************************************************************************/
@@ -54,7 +55,7 @@ rtems_task The_Task1(rtems_task_argument unused){
 
   fd0 = spw_open(GRSPW_DEVICE_NAME0);
 
-  spw_setup(fd0,GRSPW_DEVICE_NAME0,GRSPW_DEVICE_NODE0);
+  spw_setup(fd0,GRSPW_DEVICE_NAME0,GRSPW_DEVICE_NODE0,0);
   
   printf ("[Task 1] : starting to transmit in SPW0\n"); 
   while(1){
@@ -96,7 +97,7 @@ rtems_task The_Task2(rtems_task_argument unused){
   printf ("[Task 2] : Bring up link SPW1\n"); 
 
   fd1 = spw_open(GRSPW_DEVICE_NAME1);
-  spw_setup(fd1, GRSPW_DEVICE_NAME1,GRSPW_DEVICE_NODE1);
+  spw_setup(fd1, GRSPW_DEVICE_NAME1,GRSPW_DEVICE_NODE1,0);
   printf ("[Task 2] : Ready to receive in SPW1\n"); 
 
   while(i<10){
@@ -141,7 +142,7 @@ rtems_task The_Task3(char *argv[])
   printf ("Bringing up link %s with node address %d \n",argv[1], argv[2]); 
 
   fd = spw_open(device);
-  spw_setup(fd,argv[1],argv[2]);
+  spw_setup(fd,argv[1],argv[2],1);
   printf ("Ready to receive %d packets of size %d bytes \n", argv[3],argv[4]);
   
   while(count < argv[3]){
@@ -290,27 +291,25 @@ rtems_task The_Task5(char *argv[])
 
 rtems_task uartdemotask(rtems_task_argument unused){ 
 
-	int fds['z'-'a'], len, n_consoles;
+	int len;
 	struct termios term;
-	char console;
 	char buf[50];
 	int fd,i,j;
-	int iterations, console_nr, loop_back_uart;
 
 	printf("\nHello World on System Console\n");
 	fflush(NULL);
 
-	/* Open and setup consoles */
+	/* Open and setup uart */
 
 		fd = open(UART1_DEVICE, O_RDWR);
 		if ( fd < 0 ) {
-			printf("Failed to open %s.\nNumber of consoles available: %d\nCause open failed, ERRNO: %d = %s\n\n\n",UART1_DEVICE,errno,strerror(errno));
+			printf("Failed to open %s.\nCause open failed, ERRNO: %d = %s\n\n\n",UART1_DEVICE,errno,strerror(errno));
 		}
 
 		/* Get current configuration */
 		tcgetattr(fd, &term);
 
-		/* Set Console baud to 38400, default is 38400 */
+		/* Set Console baud */
 		cfsetospeed(&term, B115200);
 		cfsetispeed(&term, B115200);
 
@@ -351,6 +350,63 @@ rtems_task uartdemotask(rtems_task_argument unused){
 	close(fd);
 	rtems_task_delete(RTEMS_SELF);
 }
+
+/*******************************************************************************
+ * RTEMS uartreceiver Task
+ ******************************************************************************/
+
+rtems_task uartreceiver(rtems_task_argument unused){ 
+
+	int len;
+	struct termios term;
+	char buf[20]= "";
+	int fd,i,j;
+
+	/* Open and setup uart */
+
+		fd = open(UART1_DEVICE, O_RDWR);
+		if ( fd < 0 ) {
+			printf("Failed to open %s.\nCause open failed, ERRNO: %d = %s\n\n\n",UART1_DEVICE,errno,strerror(errno));
+		}
+
+		/* Get current configuration */
+		tcgetattr(fd, &term);
+
+		/* Set Console baud */
+		cfsetospeed(&term, B115200);
+		cfsetispeed(&term, B115200);
+
+		/* Do not echo chars */
+		term.c_lflag &= ~(ICANON|ECHO|ECHOE|ECHOK|ECHONL|ECHOPRT|ECHOCTL|ECHOKE);
+
+		/* Turn off flow control */
+		term.c_cflag |= CLOCAL;
+
+		/* Update driver's settings */
+		tcsetattr(fd, TCSANOW, &term);
+
+
+	fflush(NULL);
+
+	/* Receive a 8bits at UART
+	 * 
+	 */
+	while(1) {
+	if ( read(fd, &buf, 1) != 1 ) 
+	 {
+	    printf("Failed to receive %x\n", buf);
+//	    exit(0);
+	 }
+	else
+            printf(" Ox%x ", buf);
+	}
+
+	/* Tell everything is done. */
+	printf("Complete Test OK.\n");
+	close(fd);
+	rtems_task_delete(RTEMS_SELF);
+}
+
 
 /*******************************************************************************
  * RTEMS user commands 
@@ -566,11 +622,12 @@ int main_uartdemo(int argc, char* argv[])
     printf ("Usage: uartdemo  [-h ]  \n");
     return 0;
   }
-  else if ((0 >= argc)&& (argc >=1))
-  {
-    printf ("error: invalid options, use -h for Usage\n");
-    return -1;
-  }
+//  else if ((argc > 1) || ((argc== 1)&&(strcmp(argv[1],"-h") != 0)))
+//  {
+//    printf ("error: invalid options, use -h for Usage\n");
+//    return -1;
+//  }
+
   rtems_status_code    status;
 
   printf("[UART] -----UART DEMONSTRATOR--------- \n");
@@ -586,7 +643,36 @@ int main_uartdemo(int argc, char* argv[])
   return 0;
 }
 
+/* usercommand: uartrx */
+int main_uartrx(int argc, char* argv[])
+{
 
+  if(strcmp(argv[1],"-h") == 0 )
+  {
+    printf("task receives 8bit data words on UART %s \n", UART1_DEVICE);
+    printf ("Usage: uartrx  [-h | BAUDRATE ]  \n");
+    return 0;
+  }
+  else if (argc != 1)
+  {
+    printf ("error: invalid options, use -h for Usage\n");
+    return -1;
+  }
+ 
+  rtems_status_code    status;
+
+  printf("[UART] -----UART RECEIVER--------- \n");
+
+  Task_name[7] = rtems_build_name('T','S','K','7'); 
+
+  status = rtems_task_create(Task_name[7],TASK7_PRIORITY, RTEMS_MINIMUM_STACK_SIZE, RTEMS_DEFAULT_MODES,RTEMS_DEFAULT_ATTRIBUTES, &Task_id[7]);
+
+  printf("[UART]-- Task nb. %d created, status = %d, priority = %d, id = %x\n",1, (int)status, TASK7_PRIORITY,(int)Task_id[7]); 
+
+  rtems_task_start(Task_id[7],uartreceiver, argv);
+  
+  return 0;
+}
 
 /*******************************************************************************
  * RTEMS Startup Task
@@ -607,20 +693,19 @@ rtems_task Init (rtems_task_argument ignored)
   rtems_shell_add_cmd ("spwrcv","spacewire","Receive data in a SpaceWire link",main_spwrcv);
   rtems_shell_add_cmd ("ethrxtx","ethernet","Receive and send back the IP packet",main_ethrxtx);
   rtems_shell_add_cmd ("ethserver","ethernet","Create TCP/IP server",main_ethserver);
+  rtems_shell_add_cmd ("uartdemo","apbuart","print helloworld in apbuart(/dev/console_b) j2 connector of RASTA, uses 8N1 Baudrate: 115200 ",main_uartdemo);
+  rtems_shell_add_cmd ("uartrx","apbuart","Receive data words in apbuart(/dev/console_b) j2 connector of RASTA, uses 8N1 Baudrate: 115200",main_uartrx);
   printf("\n");
-  rtems_shell_add_cmd ("uartdemo","apbuart","print helloworld in apbuart(/dev/console_b) j2 connector of RASTA",main_uartdemo);
-
   /* Initialize shell */
   rtems_shell_init(
     "SHLL",                          /* task_name */
     512*1024,			     /* task_stacksize */
     100,                             /* task_priority */
-    "/dev/console",                  /* devname */
+    "/dev/console_b",                  /* devname */
     false,                           /* forever */
     true,                            /* wait */
     NULL                             /* login rtems_shell_login_check */
   );
-
   status = rtems_task_delete(RTEMS_SELF);
 }
 
